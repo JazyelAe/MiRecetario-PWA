@@ -2,17 +2,23 @@
   "id": "./",
   "name": "Mi Recetario",
   "short_name": "Recetario",
-  "description": "Recetas de cocina casera con base de datos en Firebase y búsqueda en línea.",
-  "start_url": "./index.html",
+  "description": "Recetas de cocina casera que funcionan sin conexión: base de datos en Firebase y búsqueda en TheMealDB.",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "lang": "es",
+  "dir": "ltr",
+  "categories": ["food", "lifestyle"],
   "background_color": "#fffaf3",
   "theme_color": "#e8590c",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "screenshots/escritorio.png", "sizes": "1280x800", "type": "image/png", "form_factor": "wide", "label": "Recetas en la computadora" },
+    { "src": "screenshots/movil.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Recetas en el teléfono" }
   ]
 }
