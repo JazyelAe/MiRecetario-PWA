@@ -34,7 +34,7 @@ footer{text-align:center;padding:26px;color:var(--muted);font-size:.85rem}
 
 /* ---- Base de datos y servicios ---- */
 .modo{display:inline-block;font-size:.75rem;font-weight:600;margin-left:6px}
-.modo.firebase{color:#2b8a3e}.modo.local{color:#b45309}
+.modo.firebase{color:#2b8a3e}.modo.local{color:#b45309}.modo.offline{color:#c92a2a}
 .aviso{position:fixed;top:70px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:99px;font-size:.88rem;font-weight:600;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.15)}
 .aviso.ok{background:#2b8a3e;color:#fff}.aviso.err{background:#c92a2a;color:#fff}
 .foto{width:100%;height:140px;object-fit:cover;border-radius:10px;display:block}
@@ -44,3 +44,6 @@ footer{text-align:center;padding:26px;color:var(--muted);font-size:.85rem}
 .nueva summary{cursor:pointer;font-weight:600}.nueva form{margin-top:12px}
 .fila{display:flex;gap:10px;max-width:560px}.fila input{margin:0}
 select{width:100%;max-width:560px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:.95rem;margin:8px 0;display:block;background:#fff}
+
+/* El atributo hidden siempre oculta, aunque la clase (como .btn) defina display */
+[hidden]{display:none !important}
