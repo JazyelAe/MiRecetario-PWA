@@ -16,7 +16,11 @@ export async function iniciar() {
   try {
     const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
     fs = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
-    base = fs.getFirestore(initializeApp(firebaseConfig));
+    // Caché persistente de Firestore (IndexedDB): las recetas se guardan en el dispositivo, se ven SIN CONEXIÓN
+    // y lo que se agrega sin red se envía solo cuando vuelve la conexión. Funciona con varias pestañas abiertas.
+    base = fs.initializeFirestore(initializeApp(firebaseConfig), {
+      localCache: fs.persistentLocalCache({ tabManager: fs.persistentMultipleTabManager() })
+    });
     modo = "firebase";
   } catch (e) {
     console.error("No se pudo cargar Firebase, se usa el modo local:", e);
@@ -27,8 +31,9 @@ export async function iniciar() {
 export function suscribirRecetas(cb, onError) {
   if (modo === "firebase") {
     const q = fs.query(fs.collection(base, "recetas"), fs.orderBy("creada", "desc"));
-    return fs.onSnapshot(q,
-      snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    // includeMetadataChanges: avisa también cuando los datos vienen de la caché local (sin conexión).
+    return fs.onSnapshot(q, { includeMetadataChanges: true },
+      snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() })), snap.metadata.fromCache),
       err => onError && onError(err));
   }
   escuchas.push(cb); cb(leerLocal());

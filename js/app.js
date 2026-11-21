@@ -45,7 +45,9 @@ function render() {
   pintarFiltros();
   document.querySelectorAll(".del").forEach(b => b.onclick = async () => {
     if (confirm("¿Borrar esta receta?")) {
-      try { await db.borrarReceta(b.dataset.id); } catch (e) { avisar("No se pudo borrar: " + e.message, true); }
+      try { await guardarSinEsperar(db.borrarReceta(b.dataset.id), "Receta borrada."); }
+      catch (e) { avisar(e.code === "permission-denied"
+        ? "Solo se puede borrar una receta en los 10 minutos siguientes a crearla." : "No se pudo borrar: " + e.message, true); }
     }
   });
 }
@@ -69,20 +71,21 @@ $("#formReceta").addEventListener("submit", async e => {
     minutos: Number($("#rMin").value) || null, dificultad: $("#rDif").value,
     ingredientes: $("#rIng").value.trim(), origen: "manual"
   };
-  try { await db.agregarReceta(r); e.target.reset(); avisar("Receta guardada."); }
+  try { e.target.reset(); await guardarSinEsperar(db.agregarReceta(r), "Receta guardada."); }
   catch (err) { avisar("No se pudo guardar: " + err.message, true); }
 });
 
 $("#formApi").addEventListener("submit", async e => {
   e.preventDefault();
   const q = $("#qApi").value.trim(); if (!q) return;
+  if (!navigator.onLine) { $("#estadoApi").textContent = "La búsqueda en TheMealDB necesita Internet. Tus recetas guardadas sí están disponibles."; return; }
   $("#estadoApi").textContent = "Buscando en TheMealDB…"; $("#gridApi").innerHTML = "";
   try {
     resultadosApi = await buscarEnLinea(q);
     $("#estadoApi").textContent = resultadosApi.length ? resultadosApi.length + " resultado(s)." : "Sin resultados. Prueba con un nombre en inglés (chicken, pasta, beef…).";
     $("#gridApi").innerHTML = resultadosApi.map((r, i) => tarjeta(r, `<button class="mini add" data-i="${i}">Guardar en mi recetario</button>`)).join("");
     document.querySelectorAll(".add").forEach(b => b.onclick = async () => {
-      try { await db.agregarReceta(resultadosApi[b.dataset.i]); b.textContent = "✓ Guardada"; b.disabled = true; }
+      try { b.textContent = "✓ Guardada"; b.disabled = true; await guardarSinEsperar(db.agregarReceta(resultadosApi[b.dataset.i])); }
       catch (err) { avisar("No se pudo guardar: " + err.message, true); }
     });
   } catch (err) {
@@ -93,13 +96,37 @@ $("#formApi").addEventListener("submit", async e => {
 $("#form").addEventListener("submit", async e => {
   e.preventDefault();
   try {
-    await db.agregarSugerencia({ nombre: $("#nombre").value.trim(), correo: $("#correo").value.trim(), mensaje: $("#msg").value.trim() });
+    await guardarSinEsperar(db.agregarSugerencia({ nombre: $("#nombre").value.trim(), correo: $("#correo").value.trim(), mensaje: $("#msg").value.trim() }));
     const ok = $("#ok"); ok.hidden = false; ok.textContent = "¡Gracias, " + $("#nombre").value + "! Tu sugerencia fue registrada.";
     e.target.reset();
   } catch (err) { avisar("No se pudo enviar: " + err.message, true); }
 });
 
+// Sin conexión, Firestore guarda el cambio en el dispositivo al instante, pero la promesa no termina
+// hasta que el servidor lo confirma (al volver la red). Por eso, sin red no se espera: se avisa y se sigue.
+async function guardarSinEsperar(promesa, mensaje) {
+  if (!navigator.onLine) {
+    promesa.catch(err => avisar("No se pudo sincronizar: " + err.message, true));
+    avisar("Guardado en tu dispositivo; se enviará a Firebase cuando vuelva la conexión.");
+    return;
+  }
+  await promesa;
+  if (mensaje) avisar(mensaje);
+}
+
+// Indicador de conexión: la app sigue funcionando sin red con las recetas guardadas.
 const modo = await db.iniciar();
-$("#modo").textContent = modo === "firebase" ? "● Conectado a Firebase" : "● Modo local (Firebase sin configurar)";
-$("#modo").className = "modo " + modo;
-db.suscribirRecetas(l => { recetas = l; render(); }, err => avisar("Error de base de datos: " + err.message, true));
+let desdeCache = false;
+function mostrarEstado() {
+  const el = $("#modo");
+  if (modo !== "firebase") { el.textContent = "● Modo local (Firebase sin configurar)"; el.className = "modo local"; return; }
+  if (!navigator.onLine) { el.textContent = "● Sin conexión · mostrando recetas guardadas"; el.className = "modo offline"; }
+  // Hay red local pero Firestore solo responde desde la caché (por ejemplo, wifi sin Internet).
+  else if (desdeCache) { el.textContent = "● Sin conexión con Firebase · mostrando recetas guardadas"; el.className = "modo offline"; }
+  else { el.textContent = "● Conectado a Firebase"; el.className = "modo firebase"; }
+}
+window.addEventListener("online", () => { mostrarEstado(); avisar("Conexión recuperada."); });
+window.addEventListener("offline", () => { mostrarEstado(); avisar("Sin conexión: puedes seguir viendo tus recetas.", true); });
+mostrarEstado();
+db.suscribirRecetas((l, cache) => { recetas = l; desdeCache = !!cache; mostrarEstado(); render(); },
+  err => avisar("Error de base de datos: " + err.message, true));
