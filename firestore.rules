@@ -2,24 +2,44 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Recetas: todos pueden leer, crear y borrar (proyecto escolar sin inicio de sesión).
+    // Recetas: lectura pública; altas validadas; borrar solo durante 10 minutos después de crearla
+    // (para deshacer un error propio sin que nadie pueda vaciar el catálogo). No se editan.
     match /recetas/{id} {
       allow read: if true;
-      allow create: if request.resource.data.nombre is string
-                    && request.resource.data.nombre.size() > 0
-                    && request.resource.data.nombre.size() <= 80
-                    && request.resource.data.ingredientes is string
-                    && request.resource.data.ingredientes.size() <= 300;
-      allow delete: if true;
+
+      allow create: if recetaValida(request.resource.data)
+                    && request.resource.data.creada == request.time;   // la fecha la pone el servidor
+
+      allow delete: if resource.data.creada is timestamp
+                    && request.time < resource.data.creada + duration.value(10, 'm');
+
       allow update: if false;
     }
 
     // Sugerencias del formulario de contacto: solo se pueden crear (se leen desde la consola de Firebase).
     match /sugerencias/{id} {
-      allow read: if false;
-      allow create: if request.resource.data.mensaje is string
+      allow read, update, delete: if false;
+      allow create: if request.resource.data.keys().hasOnly(['nombre', 'correo', 'mensaje', 'creada'])
+                    && request.resource.data.mensaje is string
                     && request.resource.data.mensaje.size() > 0
-                    && request.resource.data.mensaje.size() <= 500;
+                    && request.resource.data.mensaje.size() <= 500
+                    && request.resource.data.nombre is string
+                    && request.resource.data.nombre.size() <= 80
+                    && request.resource.data.correo is string
+                    && request.resource.data.correo.size() <= 120;
+    }
+
+    function recetaValida(r) {
+      return r.keys().hasOnly(['nombre', 'emoji', 'categoria', 'minutos', 'dificultad', 'ingredientes',
+                               'imagen', 'origen', 'creada'])
+          && r.nombre is string && r.nombre.size() > 0 && r.nombre.size() <= 80
+          && r.ingredientes is string && r.ingredientes.size() <= 300
+          && (!('categoria' in r) || (r.categoria is string && r.categoria.size() <= 40))
+          && (!('dificultad' in r) || (r.dificultad is string && r.dificultad.size() <= 40))
+          && (!('emoji' in r) || (r.emoji is string && r.emoji.size() <= 8))
+          && (!('imagen' in r) || (r.imagen is string && r.imagen.size() <= 300))
+          && (!('origen' in r) || r.origen in ['ejemplo', 'manual', 'themealdb'])
+          && (!('minutos' in r) || r.minutos == null || (r.minutos is int && r.minutos > 0 && r.minutos <= 600));
     }
   }
 }
