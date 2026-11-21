@@ -2,8 +2,8 @@
 
 **Materia:** Aplicaciones Web Progresivas · Unidad I · Actividad Cierre
 **Alumno:** Jahir Jaziel Serrano Arana · 10° D
-**Repositorio:** `JazyelAe/web` → se propone renombrarlo a **`JazyelAe/MiRecetario-PWA`** (requiere tu confirmación)
-**Estado:** borrador para aprobación (Checkpoint A)
+**Repositorio:** `JazyelAe/MiRecetario-PWA` (antes `JazyelAe/web`; renombrado con tu aprobación)
+**Estado:** aprobado el 20/11/2026 · implementado · publicado en https://jazyelae.github.io/MiRecetario-PWA/ · reglas publicadas
 
 ## 1. Objetivo
 Verificar y **pulir, sin rehacer**, Mi Recetario PWA, que es la evolución de la app web del SP2 (`Mi_Recetario`) con Firebase Firestore, TheMealDB, manifest y service worker. Debe quedar:
@@ -110,4 +110,21 @@ Si no las tomas, el reporte usa solo las automáticas y lo indica.
 **Fuentes de la definición:** web.dev (Learn PWA), MDN (Progressive web apps) y Microsoft Learn (PWA en Edge). Son las 3 del material de lectura.
 
 ## 10. Pruebas
-_(Se llena después de implementar.)_
+| # | Resultado | Evidencia |
+|---|---|---|
+| CA-1 | ✅ `Page.getInstallabilityErrors` = [] y manifest sin errores. Instalada en la PC de Jaziel: Chrome muestra «Abrir en aplicación» y la app abre en su propia ventana. | `04`, `07`, `11`, `12`, `13` |
+| CA-2 | ✅ Sin red, al recargar se ven las mismas 2 recetas (caché persistente de Firestore) y el aviso «Sin conexión · mostrando recetas guardadas». | `08_offline.png` |
+| CA-3 | ✅ Una página no guardada sin red muestra `offline.html`. | `09_offline_html.png` |
+| CA-4 | ✅ Service worker `activated`; Cache Storage con 15 archivos (app, offline.html y SDK de Firebase). | `05`, `06` |
+| CA-5 | ✅ Responsive en 390 px y 1280 px, sin desbordamiento; HTTPS con contexto seguro. | `01`, `02`, `03` |
+| CA-6 | ✅ Contra la base real: borrar una receta antigua → 403; crear con campos no permitidos → 403; crear una válida desde la app y borrarla antes de 10 minutos → permitido (6/6). La base quedó como estaba. | `pruebas_reglas.txt`, `14_regla_alta.png` |
+| CA-7 | ✅ PDF con una evidencia por característica y 4 ejemplos con URL verificada (Mi Recetario, Squoosh, Uber, Pinterest). | PDF SP7 |
+
+Pruebas automáticas sobre el sitio publicado: **11/11** (`pruebas_pwa.txt`).
+
+**Incidencias encontradas y corregidas:**
+- Sin conexión no había recetas: faltaba la caché persistente de Firestore.
+- Si Firestore solo responde desde la caché (por ejemplo, con wifi sin Internet), ahora también se avisa.
+- El botón «Cargar recetas de ejemplo» se veía siempre, porque `.btn` anulaba `hidden`.
+- **Al guardar sin red, la app se quedaba esperando:** Firestore confirma hasta que vuelve la conexión. Ahora avisa que el cambio se enviará después.
+- **Starbucks:** `app.starbucks.com` ya no existe; se reemplazó por Pinterest.
